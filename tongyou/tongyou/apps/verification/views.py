@@ -15,5 +15,8 @@ class ImageCodeView(View):
 
         # 将图像验证码字符串内容存储到redis
         redis_con.setex(uuid, 300, text)
+        # request.session['uuid'] = uuid
         # 将图形bytes数据响应给前端
         return http.HttpResponse(image_bytes, content_type='image/png')
+
+

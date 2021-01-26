@@ -5,7 +5,8 @@ from django.views import View
 from django import http
 from django.shortcuts import render
 import re
-from django.contrib.auth import login
+from django.contrib.auth import login,authenticate
+from django_redis import get_redis_connection
 
 from .models import User
 from tongyou.utils.response_code import RETCODE
@@ -23,10 +24,10 @@ class RegisterView(View):
         password = query_dic.get('password')
         password2 = query_dic.get('password2')
         mobile = query_dic.get('mobile')
-        sms_code = query_dic.get('sms_code')
+        image_code = query_dic.get('image_code')
         allow = query_dic.get('allow')
        # 2.校验数据
-        if not all([username, password, password2, mobile, sms_code, allow]):
+        if not all([username, password, password2, mobile, image_code, allow]):
             return http.HttpResponseForbidden('缺少必传参数')
 
         if not re.match(r'^[a-zA-Z0-9_-]{5,20}$', username):
@@ -43,6 +44,7 @@ class RegisterView(View):
 
         if allow != 'on':
             return http.HttpResponseForbidden('请勾选用户协议')
+
 
 
        # 3. 创建User并存储到表中
@@ -77,3 +79,28 @@ class MobileCountView(View):
 
         }
         return http.JsonResponse(data)
+
+class LoginView(View):
+    def get(self, request):
+        return render(request, 'login.html')
+    def post(self, request):
+        # 接受请求数据
+        query_dic = request.POST
+        username = query_dic.get('username')
+        password = query_dic.get('password')
+        remembered = query_dic.get('remembered')
+        # 校验
+        if all([username, password]) is False:
+            return http.HttpResponseForbidden('缺少必传参数')
+
+        # 用户登录验证
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return render(request, 'login.html', {'account_errmsg': '用户名或密码错误'})
+        # 状态保持
+        login(request, user)
+        if remembered != 'on':
+            request.session.set_expiry(0)
+
+        # 重定向到首页
+        return http.HttpResponse('OK!重定向到首页')
