@@ -3,9 +3,9 @@ from django.shortcuts import render
 # Create your views here
 from django.views import View
 from django import http
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import re
-from django.contrib.auth import login,authenticate
+from django.contrib.auth import login, authenticate
 from django_redis import get_redis_connection
 
 from .models import User
@@ -55,7 +55,7 @@ class RegisterView(View):
         login(request, user)
 
        # 4.响应
-        return http.HttpResponse('OK')
+        return redirect('/')
 
 class UsernameCountView(View):
     # 校验用户名是否重复
@@ -103,4 +103,4 @@ class LoginView(View):
             request.session.set_expiry(0)
 
         # 重定向到首页
-        return http.HttpResponse('OK!重定向到首页')
+        return redirect('/')
