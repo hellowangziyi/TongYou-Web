@@ -5,7 +5,7 @@ from django.views import View
 from django import http
 from django.shortcuts import render, redirect
 import re
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django_redis import get_redis_connection
 
 from .models import User
@@ -55,7 +55,10 @@ class RegisterView(View):
         login(request, user)
 
        # 4.响应
-        return redirect('/')
+
+        response = redirect('/')
+        response.set_cookie('username', user.username, max_age=3600 * 24 * 14)
+        return response
 
 class UsernameCountView(View):
     # 校验用户名是否重复
@@ -103,4 +106,14 @@ class LoginView(View):
             request.session.set_expiry(0)
 
         # 重定向到首页
-        return redirect('/')
+        response = redirect('/')
+        response.set_cookie('username', user.username, max_age=3600*24*14)
+        return response
+
+class LogoutView(View):
+    def get(self, request):
+        """退出登录"""
+        logout(request)
+        response = redirect('user:login')
+        response.delete_cookie('username')
+        return response
