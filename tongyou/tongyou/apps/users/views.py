@@ -113,7 +113,21 @@ class LoginView(View):
 class LogoutView(View):
     def get(self, request):
         """退出登录"""
+        # 清除登录状态
         logout(request)
+        # 创建响应对象
         response = redirect('user:login')
         response.delete_cookie('username')
+        # 重定向
         return response
+
+class InfoView(View):
+    def get(self, request):
+        """用户中心"""
+        user = request.user
+        if user.is_authenticated:
+            # 如果是登录用户则正常跳转
+            return render(request, 'user_center_info.html')
+        else:
+            # 否则重定向登录页面
+            return redirect('user:login')
