@@ -104,9 +104,10 @@ class LoginView(View):
         login(request, user)
         if remembered != 'on':
             request.session.set_expiry(0)
-
+        # 获取登录来源
+        next = request.GET.get('next')
         # 重定向到首页
-        response = redirect('/')
+        response = redirect(next or '/')
         response.set_cookie('username', user.username, max_age=3600*24*14)
         return response
 
@@ -130,4 +131,5 @@ class InfoView(View):
             return render(request, 'user_center_info.html')
         else:
             # 否则重定向登录页面
-            return redirect('user:login')
+            # return redirect('user:login')
+            return redirect('/login/?next=/info/')
