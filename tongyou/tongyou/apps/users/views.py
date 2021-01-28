@@ -7,6 +7,7 @@ from django.shortcuts import render, redirect
 import re
 from django.contrib.auth import login, authenticate, logout
 from django_redis import get_redis_connection
+import json
 
 from .models import User
 from tongyou.utils.response_code import RETCODE
@@ -82,6 +83,8 @@ class MobileCountView(View):
 
         }
         return http.JsonResponse(data)
+
+
 class ImageCodeTestView(View):
     # 校验图形验证码是否正确
     def get(self, request, uuid):
@@ -159,3 +162,30 @@ class InfoView(View):
             # 否则重定向登录页面
             # return redirect('user:login')
             return redirect('/login/?next=/info/')
+
+class EmailView(View):
+    """设置用于邮箱并激活"""
+
+    def put(self, request):
+        # 1.接收请求体非表单数据  body
+        json_dic = json.loads(request.body)
+        email = json_dic.get('email')
+
+        # 2.校验
+        if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+            return http.HttpResponseForbidden('邮箱格式错误')
+
+        # 3.修改user模型的email字段
+        user = request.user
+
+        User.objects.filter(username=user.username, email='').update(email=email)
+
+        data = {
+            'code': RETCODE.OK,
+            'errmsg': '添加邮箱成功'
+        }
+        return http.JsonResponse(data)
+
+class AddressView(View):
+    def get(self, request):
+        return render(request, 'user_center_site.html')

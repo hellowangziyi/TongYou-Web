@@ -30,3 +30,6 @@ class QQAuthURLView(View):
         return http.JsonResponse(data)
 
 
+class QQAuthUserView(View):
+    """用户扫码登录的回调处理"""
+    pass
