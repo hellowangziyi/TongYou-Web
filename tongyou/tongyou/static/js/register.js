@@ -137,21 +137,21 @@ var vm = new Vue({
             } else {
                 this.error_image_code = false;
             }
-//            if (this.error_image_code == false) {
-//                var url = this.host + '/image_code/' + this.uuid;
-//                axios.get(url, {
-//                    responseType: 'json'
-//                })
-//                    .then(response => {
-//                        if (response.data.code == '4001') {
-//                            this.error_image_code_message = response.data.errmsg;
-//                            this.error_image_code = true;
-//                        }
-//                    })
-//                    .catch(error => {
-//                        console.log(error.response);
-//                    })
-//            }
+            if (this.error_image_code == false) {
+                var url = this.host + '/image_code/test/' + this.uuid + '/?image_code=' + this.image_code;
+                axios.get(url, {
+                    responseType: 'json'
+                })
+                    .then(response => {
+                        if (response.data.code == '4001') {
+                            this.error_image_code_message = response.data.errmsg;
+                            this.error_image_code = true;
+                        }
+                    })
+                    .catch(error => {
+                        console.log(error.response);
+                    })
+            }
 
         },
 //        // 检查短信验证码

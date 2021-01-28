@@ -30,7 +30,7 @@ SECRET_KEY = '-x7@cvo^8fq2zb%i*^8$(73ufyi@eo+#$j_#pwzk)_zdgi_0n7'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['www.tongyou.site', '127.0.0.1']
 
 
 # Application definition

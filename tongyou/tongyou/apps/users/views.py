@@ -82,6 +82,32 @@ class MobileCountView(View):
 
         }
         return http.JsonResponse(data)
+class ImageCodeTestView(View):
+    # 校验图形验证码是否正确
+    def get(self, request, uuid):
+        image_code_client = request.GET.get('image_code')
+        # 创建连接到redis的对象
+        redis_conn = get_redis_connection('verify_code')
+        # 提取图形验证码
+        image_code_server = redis_conn.get(uuid)
+        if image_code_server is None:
+            # 图形验证码过期或者不存在
+            return http.JsonResponse({'code': RETCODE.IMAGECODEERR, 'errmsg': '图形验证码失效'})
+
+        # 删除图形验证码，避免恶意测试图形验证码
+        redis_conn.delete(uuid)
+
+        # 对比图形验证码
+        image_code_server = image_code_server.decode()  # bytes转字符串
+        if image_code_client.lower() != image_code_server.lower():  # 转小写后比较
+            return http.JsonResponse({'code': RETCODE.IMAGECODEERR, 'errmsg': '输入图形验证码有误'})
+        data = {
+
+            'code': RETCODE.OK,
+            'errmsg': 'OK'
+
+        }
+        return http.JsonResponse(data)
 
 class LoginView(View):
     def get(self, request):
