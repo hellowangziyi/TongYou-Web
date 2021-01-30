@@ -8,8 +8,10 @@ import re
 from django.contrib.auth import login, authenticate, logout
 from django_redis import get_redis_connection
 import json
+from django.db import DataError
+import logging
 
-from .models import User
+from .models import User, Address
 from tongyou.utils.response_code import RETCODE
 
 
@@ -188,4 +190,97 @@ class EmailView(View):
 
 class AddressView(View):
     def get(self, request):
-        return render(request, 'user_center_site.html')
+        """提供收货地址界面"""
+        # 获取用户地址列表
+        user = request.user
+        addresses = Address.objects.filter(user=user, is_deleted=False)
+
+        address_list = []
+        for address in addresses:
+            address_list.append({
+                'id': address.id,
+                'title': address.title,
+                'receiver': address.receiver,
+                'province_id': address.province.id,
+                'province': address.province.name,
+                'city_id': address.city.id,
+                'city': address.city.name,
+                'district_id': address.district.id,
+                'district': address.district.name,
+                'place': address.place,
+                'mobile': address.mobile,
+                'tel': address.tel,
+                'email': address.email
+            })
+        context = {
+            'addresses': address_list,
+            'default_address_id': 1,
+        }
+        return render(request, 'user_center_site.html', context)
+
+
+class AddressCreateView(View):
+    """创建收货地址"""
+    def post(self, request):
+        # 1.获取查询参数
+        json_dic = json.loads(request.body)
+        title = json_dic.get('title')
+        receiver = json_dic.get('receiver')
+        province_id = json_dic.get('province_id')
+        city_id = json_dic.get('city_id')
+        district_id = json_dic.get('district_id')
+        place = json_dic.get('place')
+        mobile = json_dic.get('mobile')
+        tel = json_dic.get('tel')
+        email = json_dic.get('email')
+
+        # 2.校验数据
+        if not all([receiver, province_id, city_id, district_id, place, mobile]):
+            return http.HttpResponseForbidden('缺少必传参数')
+        if not re.match(r'^1[3-9]\d{9}$', mobile):
+            return http.HttpResponseForbidden('参数mobile有误')
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', tel):
+                return http.HttpResponseForbidden('参数tel有误')
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return http.HttpResponseForbidden('参数email有误')
+
+        # 3.保存地址信息
+        try:
+            address = Address.objects.create(
+                user=request.user,
+                title=receiver,
+                receiver=receiver,
+                province_id=province_id,
+                city_id=city_id,
+                district_id=district_id,
+                place=place,
+                mobile=mobile,
+                tel=tel,
+                email=email
+            )
+        except DataError as e:
+
+            return http.JsonResponse({'code': RETCODE.DBERR, 'errmsg': '新增地址失败'})
+
+        address_dict = {
+            'id': address.id,
+            'title': address.title,
+            'receiver': address.receiver,
+            'province_id': address.province.id,
+            'province': address.province.name,
+            'city_id': address.city.id,
+            'city': address.city.name,
+            'district_id': address.district.id,
+            'district': address.district.name,
+            'place': address.place,
+            'mobile': address.mobile,
+            'tel': address.tel,
+            'email': address.email
+        }
+
+        # 响应保存结果
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '新增地址成功', 'address': address_dict})
+
+
