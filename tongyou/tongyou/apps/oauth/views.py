@@ -7,9 +7,9 @@ from tongyou.utils.response_code import RETCODE
 
 # Create your views here.
 
-QQ_CLIENT_ID = '101518219'
-QQ_CLIENT_SECRET = '418d84ebdc7241efb79536886ae95224'
-QQ_REDIRECT_URI = 'http://www.meiduo.site:8000/oauth_callback'
+QQ_CLIENT_ID = '101930063'
+QQ_CLIENT_SECRET = '8ca3b03bbb2e3266f46693b992e73a7a'
+QQ_REDIRECT_URI = 'http://www.tongyou.site:8000/oauth_callback'
 
 
 class QQAuthURLView(View):
