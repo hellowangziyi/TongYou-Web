@@ -405,3 +405,44 @@ class DefaultAddressView(View):
             return http.JsonResponse({'code': RETCODE.DBERR, 'errmsg': '设置默认地址失败'})
 
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '设置默认地址成功'})
+
+class ChangePasswordView(View):
+    """修改密码"""
+    def get(self, request):
+        """""展示修改密码界面"""
+        return render(request, 'user_center_pass.html')
+
+    def post(self, request):
+        """""修改密码"""
+        # 接收参数
+        query_dict = request.POST
+        new_pwd = query_dict.get('new_pwd')
+        old_pwd = query_dict.get('old_pwd')
+        new_cpwd = query_dict.get('new_cpwd')
+
+        # 校验参数
+        if not all([new_pwd, old_pwd, new_cpwd]):
+            return http.HttpResponseForbidden('缺少必传参数')
+
+        if request.user.check_password(old_pwd) is False:
+            return render(request, 'user_center_pass.html', {'origin_pwd_errmsg': '原始密码错误'})
+
+        if not re.match(r'^[0-9A-Za-z]{8,20}$', new_pwd):
+            return http.HttpResponseForbidden('密码最少8位，最长20位')
+
+        if new_pwd != new_cpwd:
+            return http.HttpResponseForbidden('两次输入的密码不一致')
+
+        # 修改密码
+        try:
+            request.user.set_password(new_pwd)
+            request.user.save()
+        except Exception as e:
+            return render(request, 'user_center_pass.html', {'change_pwd_errmsg': '修改密码失败'})
+
+        # 清理状态保持信息
+        logout(request)
+        response = redirect('user:login')
+        response.delete_cookie('username')
+
+        return response
