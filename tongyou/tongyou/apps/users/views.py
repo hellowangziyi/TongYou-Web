@@ -10,9 +10,12 @@ from django_redis import get_redis_connection
 import json
 from django.db import DataError
 import logging
+from django.core.mail import send_mail
 
 from .models import User, Address
 from tongyou.utils.response_code import RETCODE
+from celery_tasks.email.tasks import send_verify_email
+from .utils import generate_verify_email_url, check_verify_email_token
 
 
 class RegisterView(View):
@@ -182,11 +185,40 @@ class EmailView(View):
 
         User.objects.filter(username=user.username, email='').update(email=email)
 
+        # 发送邮件
+        # html_message = '<p>尊敬的用户您好！</p>'
+        # send_mail(subject='tongyou邮箱验证', message='正文', from_email='童游武汉<hellowzzzy@163.com>', recipient_list=[email], html_message=html_message)
+
+
+        # 异步发送验证邮件
+        verify_url = generate_verify_email_url(user)
+        send_verify_email.delay(email, verify_url)
+
         data = {
             'code': RETCODE.OK,
             'errmsg': '添加邮箱成功'
         }
         return http.JsonResponse(data)
+
+
+class VerifyEmailView(View):
+    """验证邮箱"""
+    def get(self, request):
+        # 接受查询参数中的token
+        token = request.GET.get('token')
+        # token解密，根据用户信息查询到指定user
+        user = check_verify_email_token(token)
+        if not user:
+            return http.HttpResponseForbidden('无效的token')
+        # 修改user的email_active
+        try:
+            user.email_active = True
+            user.save()
+        except Exception as e:
+            return http.HttpResponseServerError('激活邮件失败')
+
+        # 响应
+        return redirect('user:info')
 
 class AddressView(View):
     def get(self, request):
