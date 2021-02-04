@@ -6,6 +6,8 @@ from django import http
 from .models import GoodsChannel, GoodsCategory, SKU
 from contents.utils import get_categories
 from .utlis import get_breadcrumb
+from tongyou.utils.response_code import RETCODE
+
 
 # Create your views here.
 class ListView(View):
@@ -58,3 +60,29 @@ class ListView(View):
 
 
         return render(request, 'list.html', context)
+
+
+class HotGoodsView(View):
+    """商品热销排行"""
+    def get(self, request, category_id):
+        # 校验数据
+        try:
+            cat3 = GoodsCategory.objects.get(id=category_id)
+        except Exception as e:
+            return http.HttpResponse('GoodsCategory 不存在')
+
+        # 查询当前三级类别下所有商品，按销量排序
+        sku_qs = cat3.sku_set.filter(is_launched=True).order_by('-sales')[0:2]
+
+        # 模型转字典
+        hot_skus = []
+        for sku in sku_qs:
+            hot_skus.append({
+                'id': sku.id,
+                'name': sku.name,
+                'price': sku.price,
+                'default_image_url': sku.default_image.url
+            })
+
+
+        return http.JsonResponse({'code':RETCODE.OK,'errmsg':'OK', 'hot_skus':hot_skus})
