@@ -11,11 +11,13 @@ import json
 from django.db import DataError
 import logging
 from django.core.mail import send_mail
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import User, Address
 from tongyou.utils.response_code import RETCODE
 from celery_tasks.email.tasks import send_verify_email
 from .utils import generate_verify_email_url, check_verify_email_token
+from goods.models import SKU
 
 
 class RegisterView(View):
@@ -168,7 +170,7 @@ class InfoView(View):
             # return redirect('user:login')
             return redirect('/login/?next=/info/')
 
-class EmailView(View):
+class EmailView(LoginRequiredMixin, View):
     """设置用于邮箱并激活"""
 
     def put(self, request):
@@ -201,7 +203,7 @@ class EmailView(View):
         return http.JsonResponse(data)
 
 
-class VerifyEmailView(View):
+class VerifyEmailView(LoginRequiredMixin, View):
     """验证邮箱"""
     def get(self, request):
         # 接受查询参数中的token
@@ -220,7 +222,7 @@ class VerifyEmailView(View):
         # 响应
         return redirect('user:info')
 
-class AddressView(View):
+class AddressView(LoginRequiredMixin, View):
     def get(self, request):
         """提供收货地址界面"""
         # 获取用户地址列表
@@ -251,7 +253,7 @@ class AddressView(View):
         return render(request, 'user_center_site.html', context)
 
 
-class AddressCreateView(View):
+class AddressCreateView(LoginRequiredMixin, View):
     """创建收货地址"""
     def post(self, request):
         # 1.获取查询参数
@@ -320,7 +322,7 @@ class AddressCreateView(View):
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '新增地址成功', 'address': address_dict})
 
 
-class UpdateDestroyAddressView(View):
+class UpdateDestroyAddressView(LoginRequiredMixin, View):
     def put(self, request, address_id):
         """修改收货地址"""
         user = request.user
@@ -396,7 +398,7 @@ class UpdateDestroyAddressView(View):
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
 
 
-class UpdateTitleAddressView(View):
+class UpdateTitleAddressView(LoginRequiredMixin, View):
     """设置地址标题"""
     def put(self, request, address_id):
 
@@ -419,7 +421,7 @@ class UpdateTitleAddressView(View):
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '设置地址标题成功'})
 
 
-class DefaultAddressView(View):
+class DefaultAddressView(LoginRequiredMixin, View):
     """设置默认地址"""
     def put(self, request, address_id):
         """设置默认地址"""
@@ -438,7 +440,7 @@ class DefaultAddressView(View):
 
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '设置默认地址成功'})
 
-class ChangePasswordView(View):
+class ChangePasswordView(LoginRequiredMixin, View):
     """修改密码"""
     def get(self, request):
         """""展示修改密码界面"""
@@ -478,3 +480,63 @@ class ChangePasswordView(View):
         response.delete_cookie('username')
 
         return response
+
+
+class UserBrowseHistory(View):
+    """用户浏览记录"""
+    def post(self, request):
+        """保存用户浏览记录"""
+        # 判断用户是否登录
+        user = request.user
+        if not user.is_authenticated:
+            return http.JsonResponse({'code': RETCODE.SESSIONERR, 'errmsg': '用户未登录'})
+
+
+        # 接收参数
+        json_dict = json.loads(request.body)
+        sku_id = json_dict.get('sku_id')
+
+        # 校验参数
+        try:
+            sku = SKU.objects.get(id=sku_id, is_launched=True)
+        except Exception as e:
+            return http.HttpResponseForbidden('sku_id 不存在')
+
+        # 保存用户浏览数据
+        redis_conn = get_redis_connection('history')
+        pl = redis_conn.pipeline()
+
+        # redis中的用户key
+        key = 'history_%s' % user.id
+
+        # 去重
+        pl.lrem(key, 0, sku_id)
+        # 添加到列表开头
+        pl.lpush(key, sku_id)
+        # 截取列表前五个元素
+        pl.ltrim(key, 0, 4)
+        # 执行管道
+        pl.execute()
+
+        return http.JsonResponse({'code':RETCODE.OK, 'errmsg':'OK'})
+
+    def get(self, request):
+        """获取用户浏览记录"""
+        # 获取Redis存储的sku_id列表信息
+        redis_conn = get_redis_connection('history')
+        user = request.user
+        key = 'history_%s' % user.id
+        sku_ids = redis_conn.lrange(key, 0, -1)
+
+        # 根据sku_ids列表数据，查询出商品sku信息
+        sku_list = []
+        for sku_id in sku_ids:
+            sku_model = SKU.objects.get(id=sku_id)
+            sku_list.append({
+                'id':sku_model.id,
+                'name':sku_model.name,
+                'default_image_url':sku_model.default_image.url,
+                'price':sku_model.price
+            })
+
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'skus': sku_list})

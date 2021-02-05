@@ -34,8 +34,8 @@ var vm = new Vue({
         // 保存用户浏览记录
 		this.save_browse_histories();
 
-        // 记录商品详情的访问量
-		this.detail_visit();
+//        // 记录商品详情的访问量
+//		this.detail_visit();
 
 		// 获取购物车数据
         this.get_carts();
@@ -126,24 +126,24 @@ var vm = new Vue({
 					});
 			}
 		},
-		// 记录商品详情的访问量
-		detail_visit(){
-        	if (this.category_id) {
-        		var url = this.hots + '/visit/' + this.category_id + '/';
-				axios.post(url, {}, {
-						headers: {
-							'X-CSRFToken':getCookie('csrftoken')
-						},
-						responseType: 'json'
-					})
-					.then(response => {
-						console.log(response.data);
-					})
-					.catch(error => {
-						console.log(error.response);
-					});
-			}
-		},
+//		// 记录商品详情的访问量
+//		detail_visit(){
+//        	if (this.category_id) {
+//        		var url = this.hots + '/visit/' + this.category_id + '/';
+//				axios.post(url, {}, {
+//						headers: {
+//							'X-CSRFToken':getCookie('csrftoken')
+//						},
+//						responseType: 'json'
+//					})
+//					.then(response => {
+//						console.log(response.data);
+//					})
+//					.catch(error => {
+//						console.log(error.response);
+//					});
+//			}
+//		},
         // 加入购物车
         add_cart(){
             var url = this.host + '/carts/';
