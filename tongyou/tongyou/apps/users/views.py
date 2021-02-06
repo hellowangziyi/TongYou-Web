@@ -18,6 +18,7 @@ from tongyou.utils.response_code import RETCODE
 from celery_tasks.email.tasks import send_verify_email
 from .utils import generate_verify_email_url, check_verify_email_token
 from goods.models import SKU
+from carts.utils import merge_cart_cookie_to_redis
 
 
 class RegisterView(View):
@@ -145,6 +146,7 @@ class LoginView(View):
         # 重定向到首页
         response = redirect(next or '/')
         response.set_cookie('username', user.username, max_age=3600*24*14)
+        merge_cart_cookie_to_redis(request, response)
         return response
 
 class LogoutView(View):
