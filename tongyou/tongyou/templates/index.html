@@ -114,21 +114,6 @@
                 </li>
             {% endfor %}
         </ul>
-
-        <div class="news">
-            <div class="news_title">
-                <h3>快讯</h3>
-                <a href="#">更多 &gt;</a>
-            </div>
-            <ul class="news_list">
-                {% for content in contents.index_kx %}
-                    <li><a href="{{ content.url }}">{{ content.title }}</a></li>
-                {% endfor %}
-            </ul>
-            {% for content in contents.index_ytgg %}
-                <a href="{{ content.url }}" class="advs"><img src="{{ content.image.url }}"></a>
-            {% endfor %}
-        </div>
     </div>
 
     <div class="list_model">

@@ -38,4 +38,4 @@ def merge_cart_cookie_to_redis(request, response):
     pl.execute()
 
     # 删除cookie购物车数据
-    # response.delete_cookie('carts')
+    response.delete_cookie('carts')
